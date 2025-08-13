@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import SearchBar from './SearchBar';
 import EnhancedTableHeader from '@/components/EnhancedTableHeader';
+import * as XLSX from 'xlsx';
 
 interface Column {
   key: string;
@@ -149,21 +150,10 @@ const DataTable: React.FC<DataTableProps> = ({
       return newItem;
     });
 
-    // Simple CSV export without xlsx
-    const csvContent = [
-      visibleKeys.join(','),
-      ...dataToExport.map(row => visibleKeys.map(key => `"${row[key]}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'class_data.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Class Data');
+    XLSX.writeFile(workbook, 'class_data.xlsx');
   };
 
   return (
@@ -184,7 +174,6 @@ const DataTable: React.FC<DataTableProps> = ({
           <div className="flex-1 max-w-md">
             <SearchBar
               onSearch={setSearchTerm}
-              className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-300 dark:border-gray-600"
             />
           </div>
           
