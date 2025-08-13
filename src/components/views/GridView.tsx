@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { ProcessedData } from '@/types/data';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +26,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { trainerAvatars } from '../Dashboard';
 import { formatIndianCurrency } from '../MetricsPanel';
 import { AnimatePresence, motion } from 'framer-motion';
 
