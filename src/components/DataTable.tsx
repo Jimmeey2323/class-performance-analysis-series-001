@@ -527,9 +527,18 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
     link.click();
   };
   
-  // Format cell values
-  const formatCellValue = (key: string, value: any) => {
+  // Format cell values with proper type handling
+  const formatCellValue = (key: string, value: any): React.ReactNode => {
     if (value === undefined || value === null) return "-";
+    
+    // Handle arrays and objects that shouldn't be rendered directly
+    if (Array.isArray(value)) {
+      return value.length.toString();
+    }
+    
+    if (typeof value === 'object' && value.constructor === Object) {
+      return "-";
+    }
     
     const column = columns.find(col => col.key === key);
     if (!column) return String(value);
