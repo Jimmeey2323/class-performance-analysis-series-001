@@ -103,25 +103,47 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
     };
 
     if (tableView === "flat" || groupBy === "none") {
-      return data.map(item => {
-        // For flat view, calculate empty/non-empty based on individual occurrences
-        const emptyOccurrences = item.occurrences ? item.occurrences.filter(occ => occ.isEmpty).length : (item.totalCheckins === 0 ? 1 : 0);
-        const nonEmptyOccurrences = item.occurrences ? item.occurrences.filter(occ => !occ.isEmpty).length : (item.totalCheckins > 0 ? 1 : 0);
-        const totalOccurrencesCount = item.occurrences ? item.occurrences.length : 1;
-        
-        return {
-          ...item,
-          key: `flat-${data.indexOf(item)}`,
-          isChild: true,
-          // For flat view, each row represents individual occurrences
-          displayOccurrences: totalOccurrencesCount,
-          totalEmpty: emptyOccurrences,
-          totalNonEmpty: nonEmptyOccurrences,
-          // Recalculate averages based on actual occurrences
-          classAverageIncludingEmpty: totalOccurrencesCount > 0 ? item.totalCheckins / totalOccurrencesCount : 0,
-          classAverageExcludingEmpty: nonEmptyOccurrences > 0 ? item.totalCheckins / nonEmptyOccurrences : 0
-        };
+      // For flat view, create individual rows for each occurrence
+      const flatRows: any[] = [];
+      
+      data.forEach((item, itemIndex) => {
+        if (item.occurrences && item.occurrences.length > 0) {
+          // Create a row for each occurrence
+          item.occurrences.forEach((occurrence, occIndex) => {
+            flatRows.push({
+              ...item,
+              key: `flat-${itemIndex}-${occIndex}`,
+              isChild: true,
+              // Individual occurrence data
+              displayOccurrences: 1, // Each row represents 1 class
+              totalCheckins: occurrence.checkins,
+              totalRevenue: occurrence.revenue,
+              totalCancelled: occurrence.cancelled,
+              totalNonPaid: occurrence.nonPaid,
+              totalEmpty: occurrence.isEmpty ? 1 : 0,
+              totalNonEmpty: occurrence.isEmpty ? 0 : 1,
+              totalOccurrences: 1,
+              classAverageIncludingEmpty: occurrence.checkins,
+              classAverageExcludingEmpty: occurrence.isEmpty ? 'N/A' : occurrence.checkins,
+              date: occurrence.date
+            });
+          });
+        } else {
+          // Fallback for items without occurrences array
+          flatRows.push({
+            ...item,
+            key: `flat-${itemIndex}`,
+            isChild: true,
+            displayOccurrences: 1,
+            totalEmpty: item.totalCheckins === 0 ? 1 : 0,
+            totalNonEmpty: item.totalCheckins > 0 ? 1 : 0,
+            classAverageIncludingEmpty: item.totalCheckins,
+            classAverageExcludingEmpty: item.totalCheckins === 0 ? 'N/A' : item.totalCheckins
+          });
+        }
       });
+      
+      return flatRows;
     }
     
     const groups: Record<string, any> = {};
@@ -150,31 +172,45 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
           totalPayout: 0,
           totalTips: 0,
           displayOccurrences: 0,
-          allOccurrences: [] // Track all occurrences across children
+          allOccurrences: []
         };
       }
       
-      // Add to children array with corrected values for individual rows
-      const childEmptyOccurrences = item.occurrences ? item.occurrences.filter(occ => occ.isEmpty).length : (item.totalCheckins === 0 ? 1 : 0);
-      const childNonEmptyOccurrences = item.occurrences ? item.occurrences.filter(occ => !occ.isEmpty).length : (item.totalCheckins > 0 ? 1 : 0);
-      const childTotalOccurrences = item.occurrences ? item.occurrences.length : 1;
-      
-      groups[groupKey].children.push({
-        ...item,
-        // Individual rows in grouped view should show their actual occurrence count
-        displayOccurrences: childTotalOccurrences,
-        totalEmpty: childEmptyOccurrences,
-        totalNonEmpty: childNonEmptyOccurrences,
-        // Recalculate averages for individual rows based on their occurrences
-        classAverageIncludingEmpty: childTotalOccurrences > 0 ? item.totalCheckins / childTotalOccurrences : 0,
-        classAverageExcludingEmpty: childNonEmptyOccurrences > 0 ? item.totalCheckins / childNonEmptyOccurrences : 0
-      });
-      
-      // Collect all occurrences for the group
-      if (item.occurrences) {
+      // Create individual child rows for each occurrence
+      if (item.occurrences && item.occurrences.length > 0) {
+        item.occurrences.forEach((occurrence, occIndex) => {
+          groups[groupKey].children.push({
+            ...item,
+            key: `${item.uniqueID}-occ-${occIndex}`,
+            // Individual occurrence data
+            displayOccurrences: 1, // Each child row represents 1 class
+            totalCheckins: occurrence.checkins,
+            totalRevenue: occurrence.revenue,
+            totalCancelled: occurrence.cancelled,
+            totalNonPaid: occurrence.nonPaid,
+            totalEmpty: occurrence.isEmpty ? 1 : 0,
+            totalNonEmpty: occurrence.isEmpty ? 0 : 1,
+            totalOccurrences: 1,
+            classAverageIncludingEmpty: occurrence.checkins,
+            classAverageExcludingEmpty: occurrence.isEmpty ? 'N/A' : occurrence.checkins,
+            date: occurrence.date
+          });
+        });
+        
+        // Collect all occurrences for group totals
         groups[groupKey].allOccurrences.push(...item.occurrences);
       } else {
-        // Fallback: create a synthetic occurrence
+        // Fallback for items without occurrences array
+        groups[groupKey].children.push({
+          ...item,
+          displayOccurrences: 1,
+          totalEmpty: item.totalCheckins === 0 ? 1 : 0,
+          totalNonEmpty: item.totalCheckins > 0 ? 1 : 0,
+          classAverageIncludingEmpty: item.totalCheckins,
+          classAverageExcludingEmpty: item.totalCheckins === 0 ? 'N/A' : item.totalCheckins
+        });
+        
+        // Create synthetic occurrence for group calculation
         groups[groupKey].allOccurrences.push({
           date: item.date,
           checkins: item.totalCheckins,
@@ -185,7 +221,7 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
         });
       }
       
-      // Update metrics - sum up the original values for the group
+      // Update group totals from original item data
       groups[groupKey].totalCheckins += Number(item.totalCheckins);
       groups[groupKey].totalRevenue += Number(item.totalRevenue);
       groups[groupKey].totalOccurrences += Number(item.totalOccurrences);
@@ -206,12 +242,12 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
       
       // Calculate averages for each group
       group.classAverageIncludingEmpty = group.displayOccurrences > 0 
-        ? group.totalCheckins / group.displayOccurrences 
-        : 0;
+        ? Number((group.totalCheckins / group.displayOccurrences).toFixed(1))
+        : 'N/A';
         
       group.classAverageExcludingEmpty = group.totalNonEmpty > 0 
-        ? group.totalCheckins / group.totalNonEmpty 
-        : 0;
+        ? Number((group.totalCheckins / group.totalNonEmpty).toFixed(1))
+        : 'N/A';
         
       // Clean up the temporary allOccurrences array
       delete group.allOccurrences;
@@ -219,7 +255,7 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
     
     return Object.values(groups);
   }, [data, groupBy, tableView]);
-  
+
   // Define grouping options
   const groupingOptions = [
     { id: "class-day-time-location-trainer", label: "Class + Day + Time + Location + Trainer" },
@@ -870,6 +906,19 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                                   );
                                 }
                                 
+                                if (column.key === 'displayOccurrences') {
+                                  return (
+                                    <TableCell key={`child-${column.key}`} className={cn(
+                                      "py-2 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
+                                      column.numeric ? "text-right" : "text-left"
+                                    )}>
+                                      <span className="text-muted-foreground font-mono text-xs font-medium">
+                                        1
+                                      </span>
+                                    </TableCell>
+                                  );
+                                }
+                                
                                 if (column.key === 'totalEmpty') {
                                   return (
                                     <TableCell key={`child-${column.key}`} className={cn(
@@ -891,19 +940,6 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                                     )}>
                                       <span className="text-muted-foreground font-mono text-xs">
                                         {item.totalNonEmpty || 0}
-                                      </span>
-                                    </TableCell>
-                                  );
-                                }
-                                
-                                if (column.key === 'displayOccurrences') {
-                                  return (
-                                    <TableCell key={`child-${column.key}`} className={cn(
-                                      "py-2 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
-                                      column.numeric ? "text-right" : "text-left"
-                                    )}>
-                                      <span className="text-muted-foreground font-mono text-xs">
-                                        {item.displayOccurrences || 1}
                                       </span>
                                     </TableCell>
                                   );
