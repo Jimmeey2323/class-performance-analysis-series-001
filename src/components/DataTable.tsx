@@ -527,7 +527,7 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
     link.click();
   };
   
-  // Format cell values with proper type handling
+  // Format cell values with proper type handling - FIX for TypeScript error
   const formatCellValue = (key: string, value: any): React.ReactNode => {
     if (value === undefined || value === null) return "-";
     
@@ -538,6 +538,11 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
     
     if (typeof value === 'object' && value.constructor === Object) {
       return "-";
+    }
+
+    // Handle Set objects
+    if (value instanceof Set) {
+      return value.size.toString();
     }
     
     const column = columns.find(col => col.key === key);
@@ -555,6 +560,12 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
     }
     
     return String(value);
+  };
+  
+  // Safe value getter that ensures we always return a renderable value
+  const getSafeValue = (item: any, key: string): React.ReactNode => {
+    const value = item[key];
+    return formatCellValue(key, value);
   };
   
   return (
@@ -854,7 +865,7 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                                 column.currency && "text-emerald-600 dark:text-emerald-400 font-medium",
                                 "whitespace-nowrap"
                               )}>
-                                {formatCellValue(column.key, group[column.key])}
+                                {getSafeValue(group, column.key)}
                               </span>
                             </TableCell>
                           );
@@ -955,14 +966,14 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                                 }
                                 
                                 if (column.key === 'classAverageIncludingEmpty' || column.key === 'classAverageExcludingEmpty') {
-                                  const value = item[column.key as keyof ProcessedData];
+                                  const value = getSafeValue(item, column.key);
                                   return (
                                     <TableCell key={`child-${column.key}`} className={cn(
                                       "py-2 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
                                       column.numeric ? "text-right" : "text-left"
                                     )}>
                                       <span className="text-muted-foreground font-mono text-xs">
-                                        {typeof value === 'number' ? value.toFixed(1) : value}
+                                        {value}
                                       </span>
                                     </TableCell>
                                   );
@@ -979,7 +990,7 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                                       column.currency && "text-emerald-600/70 dark:text-emerald-400/70",
                                       "whitespace-nowrap"
                                     )}>
-                                      {formatCellValue(column.key, item[column.key as keyof ProcessedData])}
+                                      {getSafeValue(item, column.key)}
                                     </span>
                                   </TableCell>
                                 );
