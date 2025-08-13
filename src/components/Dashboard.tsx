@@ -174,7 +174,8 @@ const Dashboard: React.FC<DashboardProps> = ({
               <DataFilters
                 data={data}
                 onFilterChange={handleFilterChange}
-                availableColumns={availableColumns}
+                onSortChange={() => {}}
+                activeFilters={Object.keys(filters).length}
               />
               <ViewSwitcher 
                 viewMode={viewMode} 

@@ -174,6 +174,7 @@ const DataTable: React.FC<DataTableProps> = ({
           <div className="flex-1 max-w-md">
             <SearchBar
               onSearch={setSearchTerm}
+              data={data}
             />
           </div>
           
