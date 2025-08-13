@@ -1,21 +1,19 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import FileUploader from '@/components/FileUploader';
 import Dashboard from '@/components/Dashboard';
 import { ProcessedData, ViewMode } from '@/types/data';
 import { processZipFile } from '@/utils/fileProcessing';
 import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
+
 const Index = () => {
   const [data, setData] = useState<ProcessedData[]>([]);
   const [loading, setLoading] = useState(false);
   const [fileUploaded, setFileUploaded] = useState(false);
   const [progress, setProgress] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
-  const {
-    toast
-  } = useToast();
-  const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Load data from localStorage on component mount
   useEffect(() => {
@@ -35,6 +33,7 @@ const Index = () => {
       }
     }
   }, []);
+
   const handleFileUpload = async (file: File) => {
     setLoading(true);
     setProgress(10);
@@ -68,9 +67,10 @@ const Index = () => {
     } finally {
       setTimeout(() => {
         setLoading(false);
-      }, 1000); // Keep loading for a short period to show progress
+      }, 1000);
     }
   };
+
   const handleReset = () => {
     setData([]);
     setFileUploaded(false);
@@ -82,45 +82,48 @@ const Index = () => {
       duration: 3000
     });
   };
-  const handleLogout = () => {
-    navigate('/auth');
-  };
-  return <div className="bg-gradient-to-b from-[#F8F9FC] to-[#F0F4FF] dark:from-gray-900 dark:to-gray-950 min-h-screen">
-      {!fileUploaded ? <motion.div className="flex flex-col items-center justify-center min-h-screen p-6" initial={{
-      opacity: 0,
-      y: 20
-    }} animate={{
-      opacity: 1,
-      y: 0
-    }} transition={{
-      duration: 0.5
-    }}>
-          <motion.img src="https://i.imgur.com/9mOm7gP.png" alt="Logo" initial={{
-        rotate: 0
-      }} animate={{
-        rotate: 360
-      }} transition={{
-        duration: 20,
-        repeat: Infinity,
-        ease: "linear"
-      }} className="h-20 w-auto mb-6" />
+
+  return (
+    <div className="bg-gradient-to-b from-[#F8F9FC] to-[#F0F4FF] dark:from-gray-900 dark:to-gray-950 min-h-screen">
+      {!fileUploaded ? (
+        <motion.div 
+          className="flex flex-col items-center justify-center min-h-screen p-6" 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.5 }}
+        >
+          <motion.img 
+            src="https://i.imgur.com/9mOm7gP.png" 
+            alt="Logo" 
+            initial={{ rotate: 0 }} 
+            animate={{ rotate: 360 }} 
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }} 
+            className="h-20 w-auto mb-6" 
+          />
           
-          <motion.div initial={{
-        scale: 0.9,
-        opacity: 0
-      }} animate={{
-        scale: 1,
-        opacity: 1
-      }} transition={{
-        delay: 0.2,
-        duration: 0.5
-      }} className="w-full max-w-3xl bg-white dark:bg-gray-800 text-white rounded-xl shadow-lg p-8 border border-[#E0E6F0]">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }} 
+            transition={{ delay: 0.2, duration: 0.5 }} 
+            className="w-full max-w-3xl bg-white dark:bg-gray-800 text-white rounded-xl shadow-lg p-8 border border-[#E0E6F0]"
+          >
             <h1 className="text-2xl font-bold mb-2 text-center text-[#1E2F4D] dark:text-white">Class Analytics Dashboard</h1>
-            
             
             <FileUploader onFileUpload={handleFileUpload} />
           </motion.div>
-        </motion.div> : <Dashboard data={data} loading={loading} progress={progress} onReset={handleReset} viewMode={viewMode} setViewMode={setViewMode} onLogout={handleLogout} />}
-    </div>;
+        </motion.div>
+      ) : (
+        <Dashboard 
+          data={data} 
+          loading={loading} 
+          progress={progress} 
+          onReset={handleReset} 
+          viewMode={viewMode} 
+          setViewMode={setViewMode} 
+        />
+      )}
+    </div>
+  );
 };
+
 export default Index;
