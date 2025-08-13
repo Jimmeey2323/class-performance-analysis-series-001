@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ProcessedData } from '@/types/data';
 import MetricCard from '@/components/MetricCard';
@@ -8,9 +9,28 @@ interface MetricsPanelProps {
   data: ProcessedData[];
 }
 
+export const formatIndianCurrency = (value: number): string => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
 const MetricsPanel: React.FC<MetricsPanelProps> = ({ data }) => {
-  const totalRevenue = data.reduce((sum, item) => sum + item.totalRevenue, 0);
-  const totalCheckins = data.reduce((sum, item) => sum + item.totalCheckins, 0);
+  const totalRevenue = data.reduce((sum, item) => {
+    const revenue = typeof item.totalRevenue === 'number' ? item.totalRevenue : 
+                   typeof item.totalRevenue === 'string' ? parseFloat(item.totalRevenue) || 0 : 0;
+    return sum + revenue;
+  }, 0);
+  
+  const totalCheckins = data.reduce((sum, item) => {
+    const checkins = typeof item.totalCheckins === 'number' ? item.totalCheckins :
+                    typeof item.totalCheckins === 'string' ? parseFloat(item.totalCheckins) || 0 : 0;
+    return sum + checkins;
+  }, 0);
+  
   const uniqueClasses = new Set(data.map(item => item.cleanedClass)).size;
   const uniqueLocations = new Set(data.map(item => item.location)).size;
 

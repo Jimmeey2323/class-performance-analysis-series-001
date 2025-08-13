@@ -1,17 +1,17 @@
+
 import React, { useState, useMemo } from 'react';
 import { ProcessedData, ViewMode } from '@/types/data';
 import MetricsPanel from '@/components/MetricsPanel';
 import DataFilters from '@/components/DataFilters';
 import DataTable from '@/components/DataTable';
 import ChartPanel from '@/components/ChartPanel';
-import ViewSwitcher from '@/components/ViewSwitcher';
+import { ViewSwitcher } from '@/components/ViewSwitcher';
 import TopBottomClasses from '@/components/TopBottomClasses';
 import TrainerComparisonView from '@/components/TrainerComparisonView';
 import GridView from '@/components/views/GridView';
 import KanbanView from '@/components/views/KanbanView';
 import TimelineView from '@/components/views/TimelineView';
 import PivotView from '@/components/views/PivotView';
-import { filterData } from '@/utils/filterUtils';
 import { Button } from '@/components/ui/button';
 import { Download, RotateCcw, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -38,6 +38,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   onLogout
 }) => {
   const [filters, setFilters] = useState<{ [key: string]: string }>({});
+  
   const availableColumns = useMemo(() => {
     if (data.length === 0) return [];
 
@@ -50,8 +51,26 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [data]);
 
   const filteredData = useMemo(() => {
-    return filterData(data, filters);
+    if (Object.keys(filters).length === 0) return data;
+    
+    return data.filter(item => {
+      return Object.entries(filters).every(([key, value]) => {
+        if (!value || value === 'all') return true;
+        const itemValue = item[key as keyof ProcessedData];
+        return String(itemValue).toLowerCase().includes(value.toLowerCase());
+      });
+    });
   }, [data, filters]);
+
+  // Create mock trainer avatars for view components
+  const trainerAvatars = useMemo(() => {
+    const avatars: Record<string, string> = {};
+    const uniqueTrainers = new Set(data.map(item => item.teacherName));
+    uniqueTrainers.forEach(trainer => {
+      avatars[trainer] = `https://api.dicebear.com/7.x/avataaars/svg?seed=${trainer}`;
+    });
+    return avatars;
+  }, [data]);
 
   return (
     <div className="bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen">
@@ -141,13 +160,12 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <DataFilters
               data={data}
-              onFiltersChange={setFilters}
+              onFilterChange={setFilters}
               availableColumns={availableColumns}
             />
             <ViewSwitcher 
               viewMode={viewMode} 
               setViewMode={setViewMode}
-              className="lg:justify-end"
             />
           </div>
         </motion.div>
@@ -166,10 +184,10 @@ const Dashboard: React.FC<DashboardProps> = ({
               className="border-0"
             />
           )}
-          {viewMode === 'grid' && <GridView data={filteredData} />}
-          {viewMode === 'kanban' && <KanbanView data={filteredData} />}
-          {viewMode === 'timeline' && <TimelineView data={filteredData} />}
-          {viewMode === 'pivot' && <PivotView data={filteredData} />}
+          {viewMode === 'grid' && <GridView data={filteredData} trainerAvatars={trainerAvatars} />}
+          {viewMode === 'kanban' && <KanbanView data={filteredData} trainerAvatars={trainerAvatars} />}
+          {viewMode === 'timeline' && <TimelineView data={filteredData} trainerAvatars={trainerAvatars} />}
+          {viewMode === 'pivot' && <PivotView data={filteredData} trainerAvatars={trainerAvatars} />}
         </motion.div>
 
         {/* Enhanced Charts and Analysis */}
@@ -190,7 +208,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             className="space-y-8"
           >
             <TopBottomClasses data={filteredData} />
-            <TrainerComparisonView data={filteredData} />
+            <TrainerComparisonView data={filteredData} trainerAvatars={trainerAvatars} />
           </motion.div>
         </div>
       </div>

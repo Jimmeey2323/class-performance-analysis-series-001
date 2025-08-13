@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import {
   Table,
@@ -24,17 +25,29 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { ProcessedData, Column } from '@/types/data';
+import { ProcessedData } from '@/types/data';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { utils, writeFile } from 'xlsx';
 import SearchBar from './SearchBar';
 import EnhancedTableHeader from '@/components/EnhancedTableHeader';
+
+interface Column {
+  key: string;
+  label: string;
+  sortable?: boolean;
+  numeric?: boolean;
+  currency?: boolean;
+}
 
 interface DataTableProps {
   data: ProcessedData[];
   availableColumns: Column[];
   className?: string;
+}
+
+interface ExtendedProcessedData extends ProcessedData {
+  isGroup?: boolean;
+  isChild?: boolean;
 }
 
 const DataTable: React.FC<DataTableProps> = ({
@@ -64,7 +77,7 @@ const DataTable: React.FC<DataTableProps> = ({
   }, [data, searchTerm]);
 
   const groupedData = useMemo(() => {
-    if (!isGrouped) return filteredData;
+    if (!isGrouped) return filteredData.map(item => ({ ...item } as ExtendedProcessedData));
 
     const grouped: { [key: string]: ProcessedData[] } = {};
     filteredData.forEach(item => {
@@ -75,11 +88,11 @@ const DataTable: React.FC<DataTableProps> = ({
       grouped[key].push(item);
     });
 
-    const result: (ProcessedData & { isGroup?: boolean, isChild?: boolean })[] = [];
+    const result: ExtendedProcessedData[] = [];
     Object.entries(grouped).forEach(([key, items]) => {
-      result.push({ ...items[0], isGroup: true, uniqueID: `group-${key}` }); // Add group header
+      result.push({ ...items[0], isGroup: true, uniqueID: `group-${key}` } as ExtendedProcessedData);
       items.forEach(item => {
-        result.push({ ...item, isChild: true }); // Add child items
+        result.push({ ...item, isChild: true } as ExtendedProcessedData);
       });
     });
 
@@ -136,10 +149,21 @@ const DataTable: React.FC<DataTableProps> = ({
       return newItem;
     });
 
-    const wb = utils.book_new();
-    const ws = utils.json_to_sheet(dataToExport);
-    utils.book_append_sheet(wb, ws, "Sheet1");
-    writeFile(wb, "class_data.xlsx");
+    // Simple CSV export without xlsx
+    const csvContent = [
+      visibleKeys.join(','),
+      ...dataToExport.map(row => visibleKeys.map(key => `"${row[key]}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'class_data.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -160,7 +184,6 @@ const DataTable: React.FC<DataTableProps> = ({
           <div className="flex-1 max-w-md">
             <SearchBar
               onSearch={setSearchTerm}
-              placeholder="Search classes, trainers, locations..."
               className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-300 dark:border-gray-600"
             />
           </div>
